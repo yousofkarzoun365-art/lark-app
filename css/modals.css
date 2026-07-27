@@ -1,0 +1,46 @@
+/* ===== SIDEBAR ===== */
+.sidebar-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200; opacity:0; pointer-events:none; transition:opacity 0.3s; }
+.sidebar-overlay.active { opacity:1; pointer-events:all; }
+.sidebar { position:fixed; top:0; left:-300px; width:280px; height:100%; background:var(--white); z-index:201; transition:left 0.35s cubic-bezier(0.4,0,0.2,1); display:flex; flex-direction:column; box-shadow:4px 0 24px rgba(0,0,0,0.15); }
+.sidebar.open { left:0; }
+.sidebar-header { background:linear-gradient(135deg,#1a1a1a,#2c2c2c); padding:50px 20px 24px; display:flex; flex-direction:column; align-items:center; text-align:center; position:relative; }
+.sidebar-logo { width:64px; height:64px; object-fit:contain; margin-bottom:10px; filter:drop-shadow(0 0 8px rgba(201,168,76,0.4)); }
+.sidebar-username { color:var(--gold); font-size:1.1rem; font-weight:700; }
+.sidebar-subtitle { color:rgba(255,255,255,0.5); font-size:0.75rem; margin-top:2px; }
+.sidebar-close { position:absolute; top:16px; right:14px; background:rgba(255,255,255,0.1); border:none; color:rgba(255,255,255,0.7); width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:0.9rem; display:flex; align-items:center; justify-content:center; }
+.sidebar-nav { padding:12px 0; flex:1; overflow-y:auto; }
+.sidebar-item { width:100%; background:none; border:none; padding:16px 20px; display:flex; align-items:center; gap:14px; cursor:pointer; font-size:0.95rem; font-weight:500; color:var(--text-dark); text-align:left; transition:background 0.15s; border-bottom:1px solid #f5f5f5; }
+.sidebar-item:hover { background:#fdf8ec; color:var(--gold-dark); }
+.sidebar-icon { font-size:1.2rem; width:24px; text-align:center; }
+.sidebar-arrow { margin-left:auto; color:var(--text-light); }
+
+/* ===== MODALS ===== */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:300; display:flex; align-items:flex-end; justify-content:center; opacity:0; pointer-events:none; transition:opacity 0.3s; }
+.modal-overlay.active { opacity:1; pointer-events:all; }
+
+.modal-sheet { background:var(--white); width:100%; max-width:540px; border-radius:24px 24px 0 0; max-height:85vh; display:flex; flex-direction:column; transform:translateY(100%); transition:transform 0.35s cubic-bezier(0.4,0,0.2,1); overflow:hidden; }
+.modal-overlay.active .modal-sheet { transform:translateY(0); }
+.modal-sheet-full { max-height:92vh; }
+
+.modal-box { background:var(--white); width:calc(100% - 40px); max-width:360px; border-radius:20px; margin:auto; transform:scale(0.9); opacity:0; transition:transform 0.3s,opacity 0.3s; overflow:hidden; }
+.modal-overlay.active .modal-box { transform:scale(1); opacity:1; }
+
+.modal-handle { width:40px; height:4px; background:#ddd; border-radius:2px; margin:10px auto 4px; flex-shrink:0; }
+.modal-header { padding:16px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f0f0f0; flex-shrink:0; }
+.modal-header h3 { font-size:1rem; font-weight:700; color:var(--text-dark); }
+.modal-close { background:#f5f5f5; border:none; width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:0.85rem; color:var(--text-medium); display:flex; align-items:center; justify-content:center; }
+.modal-body { padding:20px; overflow-y:auto; flex:1; line-height:1.7; }
+
+/* Story / Grammar */
+.story-content { font-size:1rem; line-height:1.9; color:var(--text-dark); }
+.story-content h4 { font-size:1.15rem; color:var(--gold-dark); margin-bottom:14px; font-weight:700; }
+.grammar-content h4 { font-size:1.1rem; color:var(--teal-dark); margin-bottom:12px; font-weight:700; }
+.rule-title { font-size:1.2rem; font-weight:800; color:var(--teal-dark); margin-bottom:16px; }
+
+/* RTL */
+body[dir="rtl"] .sidebar { left:auto; right:-300px; box-shadow:-4px 0 24px rgba(0,0,0,0.15); }
+body[dir="rtl"] .sidebar.open { right:0; left:auto; }
+body[dir="rtl"] .sidebar-close { right:auto; left:14px; }
+body[dir="rtl"] .sidebar-item { text-align:right; }
+body[dir="rtl"] .sidebar-arrow { margin-left:0; margin-right:auto; }
+body[dir="rtl"] .modal-body { text-align:right; }

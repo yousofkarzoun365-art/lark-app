@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lark Admin Panel</title>
+  <link rel="icon" href="images/logo.png"/>
+  <style>
+    :root{--gold:#c9a84c;--gold-dark:#8B6914;--radius:14px;--af:15px;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    html{font-size:var(--af);}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f0f1a;min-height:100vh;}
+
+    /* LOGIN */
+    .login{position:fixed;inset:0;background:linear-gradient(160deg,#1a1a1a,#2c2416);display:flex;align-items:center;justify-content:center;flex-direction:column;padding:30px;z-index:999;}
+    .login.hidden{display:none;}
+    .login img{width:70px;height:70px;object-fit:contain;margin-bottom:16px;}
+    .login h1{color:var(--gold);font-size:1.8rem;font-weight:800;letter-spacing:2px;margin-bottom:6px;}
+    .login p{color:rgba(255,255,255,0.4);font-size:0.85rem;margin-bottom:32px;}
+    .login-form{width:100%;max-width:300px;display:flex;flex-direction:column;gap:12px;}
+    .li{padding:13px 16px;border-radius:10px;border:2px solid rgba(201,168,76,0.3);background:rgba(255,255,255,0.07);color:white;font-size:1rem;outline:none;}
+    .li:focus{border-color:var(--gold);}
+    .li::placeholder{color:rgba(255,255,255,0.3);}
+    .lb{padding:14px;background:linear-gradient(135deg,var(--gold),var(--gold-dark));border:none;border-radius:10px;color:white;font-size:1rem;font-weight:700;cursor:pointer;}
+    .lerr{color:#ff6b6b;font-size:0.85rem;text-align:center;display:none;}
+
+    /* LAYOUT */
+    .wrap{display:none;}.wrap.on{display:block;}
+    .topbar{background:#1a1a1a;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+    .brand{display:flex;align-items:center;gap:10px;}
+    .brand img{width:36px;height:36px;object-fit:contain;}
+    .brand span{color:var(--gold);font-size:1.1rem;font-weight:700;letter-spacing:1px;}
+    .trbar{display:flex;align-items:center;gap:12px;}
+    .fctr{display:flex;align-items:center;gap:6px;}
+    .fctr button{background:rgba(201,168,76,0.15);border:1px solid var(--gold);color:var(--gold);border-radius:6px;padding:5px 10px;font-size:0.85rem;font-weight:700;cursor:pointer;}
+    .fctr span{color:rgba(255,255,255,0.4);font-size:0.8rem;}
+    .lgout{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:0.85rem;}
+    .layout{display:flex;min-height:calc(100vh - 60px);}
+
+    /* SIDEBAR */
+    .asb{width:220px;background:#111;padding:20px 0;flex-shrink:0;position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto;}
+    .sbsec{padding:8px 16px;color:rgba(255,255,255,0.3);font-size:0.7rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:16px;}
+    .sbl{display:block;padding:11px 20px;color:rgba(255,255,255,0.65);font-size:0.9rem;cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:all 0.15s;border-left:3px solid transparent;}
+    .sbl:hover{background:rgba(255,255,255,0.06);color:white;}
+    .sbl.on{background:rgba(201,168,76,0.12);color:var(--gold);border-left-color:var(--gold);}
+
+    /* MAIN */
+    .amain{flex:1;padding:28px 32px;overflow-y:auto;}
+    .asec{display:none;animation:fi 0.25s ease;}
+    .asec.on{display:block;}
+    @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    .stitle{font-size:1.3rem;font-weight:700;color:white;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:10px;}
+    .ac{background:#1e1e2e;border-radius:var(--radius);padding:22px;margin-bottom:18px;border:1px solid rgba(255,255,255,0.06);}
+    .fl{color:rgba(255,255,255,0.6);font-size:0.82rem;font-weight:600;margin-bottom:8px;display:block;}
+    .ai,.at,.asel{width:100%;padding:11px 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:9px;color:white;font-size:0.9rem;outline:none;transition:border-color 0.2s;font-family:inherit;}
+    .ai:focus,.at:focus{border-color:var(--gold);}
+    .ai::placeholder,.at::placeholder{color:rgba(255,255,255,0.25);}
+    .at{min-height:100px;resize:vertical;line-height:1.6;}
+    .btn{padding:10px 20px;border:none;border-radius:9px;font-size:0.88rem;font-weight:600;cursor:pointer;transition:opacity 0.2s;}
+    .btn:active{opacity:0.85;}
+    .bg{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:white;}
+    .br{background:#c62828;color:white;}
+    .bk{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);}
+    .row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;}
+    .row .ai{flex:1;min-width:140px;}
+    .alrt{padding:12px 16px;border-radius:9px;font-size:0.85rem;font-weight:500;margin-top:10px;display:none;}
+    .alrt.ok{background:rgba(46,125,50,0.2);color:#81c784;border:1px solid rgba(46,125,50,0.3);display:block;}
+    .alrt.er{background:rgba(198,40,40,0.2);color:#ef9a9a;border:1px solid rgba(198,40,40,0.3);display:block;}
+
+    /* ADS */
+    .adlist{display:flex;flex-direction:column;gap:10px;margin-top:16px;}
+    .adit{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;}
+    .adtt{color:white;font-weight:600;font-size:0.9rem;}
+    .adpv{color:rgba(255,255,255,0.4);font-size:0.78rem;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px;}
+
+    /* SCHEDULE */
+    .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .sday{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px;}
+    .sdname{color:var(--gold);font-weight:700;font-size:0.88rem;margin-bottom:10px;}
+
+    /* CHAT */
+    .cmsgs{background:rgba(0,0,0,0.2);border-radius:10px;padding:16px;min-height:200px;max-height:360px;overflow-y:auto;margin-bottom:12px;display:flex;flex-direction:column;gap:10px;}
+    .cmsg{max-width:82%;padding:10px 14px;border-radius:12px;font-size:0.88rem;line-height:1.5;}
+    .cmsg.u{background:rgba(201,168,76,0.2);color:white;align-self:flex-end;border-radius:12px 12px 2px 12px;}
+    .cmsg.a{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.85);align-self:flex-start;border-radius:12px 12px 12px 2px;}
+    .crow{display:flex;gap:10px;}
+    .crow .ai{flex:1;}
+
+    /* STATS */
+    .srow{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-bottom:20px;}
+    .scard{background:#1e1e2e;border-radius:12px;padding:16px;text-align:center;border:1px solid rgba(255,255,255,0.06);}
+    .sv{font-size:1.6rem;font-weight:800;color:var(--gold);}
+    .sl{font-size:0.72rem;color:rgba(255,255,255,0.4);margin-top:4px;}
+    .cstat{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+    .cbadge{padding:6px 14px;border-radius:20px;font-size:0.78rem;font-weight:600;}
+    .cbadge.ok{background:rgba(46,125,50,0.2);color:#81c784;}
+    .cbadge.pend{background:rgba(201,168,76,0.15);color:var(--gold);}
+
+    @media(max-width:640px){.asb{display:none;}.amain{padding:16px;}.sgrid{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+
+<div class="login" id="loginScreen">
+  <img src="images/logo.png" alt="Lark"/>
+  <h1>LARK</h1><p>Admin Panel</p>
+  <div class="login-form">
+    <input class="li" type="text" id="lu" placeholder="Username"/>
+    <input class="li" type="password" id="lp" placeholder="Password"/>
+    <div class="lerr" id="lerr">Invalid credentials</div>
+    <button class="lb" onclick="doLogin()">Login →</button>
+  </div>
+</div>
+
+<div class="wrap" id="aw">
+  <div class="topbar">
+    <div class="brand"><img src="images/logo.png" alt=""/><span>LARK ADMIN</span></div>
+    <div class="trbar">
+      <div class="fctr">
+        <button onclick="afc(-1)">A-</button>
+        <span id="afl">Medium</span>
+        <button onclick="afc(1)">A+</button>
+      </div>
+      <button class="lgout" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <nav class="asb">
+      <div class="sbsec">Content</div>
+      <button class="sbl on" onclick="ss('dash')">📊 Dashboard</button>
+      <button class="sbl" onclick="ss('daily')">📅 Daily Content</button>
+      <button class="sbl" onclick="ss('sched')">🗓 Week Schedule</button>
+      <button class="sbl" onclick="ss('manual')">✏️ Manual Content</button>
+      <div class="sbsec">Ads & Settings</div>
+      <button class="sbl" onclick="ss('ads')">📢 Advertisements</button>
+      <button class="sbl" onclick="ss('api')">🔑 API & AI</button>
+      <button class="sbl" onclick="ss('chat')">💬 AI Chat</button>
+      <button class="sbl" onclick="ss('appset')">⚙️ App Settings</button>
+    </nav>
+
+    <main class="amain">
+
+      <!-- DASHBOARD -->
+      <section class="asec on" id="s-dash">
+        <div class="stitle">📊 Dashboard</div>
+        <div class="srow" id="dstats"></div>
+        <div class="ac">
+          <div class="fl">Today's Content Status</div>
+          <div class="cstat" id="cstat"></div>
+          <button class="btn bg" onclick="forceRegen()">🔄 Regenerate Today's Content</button>
+        </div>
+        <div class="ac">
+          <div class="fl">Quick Links</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">
+            <button class="btn bk" onclick="window.open('index.html','_blank')">🌐 Open App</button>
+            <button class="btn bk" onclick="ss('ads')">📢 Manage Ads</button>
+            <button class="btn bk" onclick="ss('sched')">🗓 Schedule</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- DAILY CONTENT -->
+      <section class="asec" id="s-daily">
+        <div class="stitle">📅 Daily Content</div>
+        <div class="ac">
+          <label class="fl">Today's Story Topic (AI generates based on this)</label>
+          <input class="ai" id="dStory" placeholder="e.g. A day in a British café..."/>
+        </div>
+        <div class="ac">
+          <label class="fl">Today's Grammar Rule Topic</label>
+          <input class="ai" id="dGrammar" placeholder="e.g. Past Perfect, Conditionals..."/>
+        </div>
+        <div class="ac">
+          <label class="fl">Extra Instructions for Today</label>
+          <textarea class="at" id="dInstr" placeholder="Special instructions..."></textarea>
+        </div>
+        <button class="btn bg" onclick="saveDailyTopics()">💾 Save & Regenerate</button>
+        <div class="alrt" id="dalrt"></div>
+      </section>
+
+      <!-- SCHEDULE -->
+      <section class="asec" id="s-sched">
+        <div class="stitle">🗓 Week Schedule</div>
+        <p style="color:rgba(255,255,255,0.4);font-size:0.85rem;margin-bottom:16px;">Set topics for the next 7 days. AI generates content automatically each day.</p>
+        <div class="sgrid" id="sgrid"></div><br>
+        <button class="btn bg" onclick="saveSched()">💾 Save Schedule</button>
+        <div class="alrt" id="salrt"></div>
+      </section>
+
+      <!-- MANUAL -->
+      <section class="asec" id="s-manual">
+        <div class="stitle">✏️ Manual Content</div>
+        <p style="color:rgba(255,255,255,0.4);font-size:0.85rem;margin-bottom:16px;">Use when AI fails. Publishes immediately to all users.</p>
+        <div class="ac">
+          <label class="fl">Story Title</label><input class="ai" id="mSTitle" placeholder="Story title..."/>
+          <br><br><label class="fl">Story Preview (shown on card)</label>
+          <textarea class="at" id="mSPrev" placeholder="First 2-3 sentences..." style="min-height:70px;"></textarea>
+          <br><br><label class="fl">Full Story</label>
+          <textarea class="at" id="mSFull" placeholder="Full story text..." style="min-height:160px;"></textarea>
+        </div>
+        <div class="ac">
+          <label class="fl">Grammar Rule Name</label><input class="ai" id="mGRule" placeholder="e.g. Past Perfect Tense"/>
+          <br><br><label class="fl">Grammar Lesson</label>
+          <textarea class="at" id="mGFull" placeholder="Full grammar lesson..." style="min-height:160px;"></textarea>
+        </div>
+        <button class="btn bg" onclick="saveManual()">💾 Publish Manual Content</button>
+        <div class="alrt" id="malrt"></div>
+      </section>
+
+      <!-- ADS -->
+      <section class="asec" id="s-ads">
+        <div class="stitle">📢 Advertisements</div>
+        <div class="ac">
+          <label class="fl">Ad Title</label><input class="ai" id="adTitle" placeholder="Advertisement title..."/>
+          <br><br><label class="fl">Ad Content</label>
+          <textarea class="at" id="adContent" placeholder="Paste advertiser text here..." style="min-height:120px;"></textarea>
+          <br><br><button class="btn bg" onclick="addAd()">➕ Add Advertisement</button>
+          <div class="alrt" id="adalrt"></div>
+        </div>
+        <div class="adlist" id="adlist"></div>
+      </section>
+
+      <!-- API -->
+      <section class="asec" id="s-api">
+        <div class="stitle">🔑 API & AI Settings</div>
+        <div class="ac">
+          <label class="fl">DeepSeek API Key</label>
+          <div class="row">
+            <input class="ai" type="password" id="apiKey" placeholder="sk-..."/>
+            <button class="btn bg" onclick="saveApiKey()">Save</button>
+          </div>
+          <div id="akstat" style="margin-top:10px;font-size:0.8rem;color:rgba(255,255,255,0.4);"></div>
+        </div>
+        <div class="ac">
+          <label class="fl">AI System Instructions</label>
+          <textarea class="at" id="aiInstr" placeholder="e.g. Use simple vocabulary. Target B1-B2 learners..." style="min-height:120px;"></textarea>
+          <br><button class="btn bg" onclick="saveInstr()">💾 Save Instructions</button>
+          <div class="alrt" id="ialrt"></div>
+        </div>
+      </section>
+
+      <!-- CHAT -->
+      <section class="asec" id="s-chat">
+        <div class="stitle">💬 AI Chat</div>
+        <div class="ac">
+          <div class="cmsgs" id="cmsgs"><div class="cmsg a">Hello! I'm Lark AI. How can I help?</div></div>
+          <div class="crow">
+            <input class="ai" id="cinput" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendChat()"/>
+            <button class="btn bg" onclick="sendChat()">Send</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- APP SETTINGS -->
+      <section class="asec" id="s-appset">
+        <div class="stitle">⚙️ App Settings</div>
+        <div class="ac">
+          <label class="fl">Developer WhatsApp Number (Syria +963)</label>
+          <div class="row">
+            <input class="ai" id="waNum" placeholder="e.g. 0912345678"/>
+            <button class="btn bg" onclick="saveWA()">Save</button>
+          </div>
+          <p style="color:rgba(255,255,255,0.3);font-size:0.78rem;margin-top:8px;">Hidden from users. Used for "Contact Developer" button.</p>
+          <div class="alrt" id="waalrt"></div>
+        </div>
+        <div class="ac">
+          <label class="fl">About Us Text</label>
+          <textarea class="at" id="aboutTxt" placeholder="Write about the app..." style="min-height:140px;"></textarea>
+          <br><button class="btn bg" onclick="saveAbout()">💾 Save About Text</button>
+          <div class="alrt" id="abalrt"></div>
+        </div>
+        <div class="ac">
+          <label class="fl" style="color:#ef9a9a;">⚠️ Danger Zone</label>
+          <button class="btn br" onclick="clearContent()">🗑 Clear Today's Content</button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script>
+// ===== CONFIG =====
+const SB_URL = 'https://ijpksxtagfiecjspjgsc.supabase.co';
+const SB_KEY = 'sb_publishable_FOZa3tzqUNsAVG8VlcJJZw_YsgM2mQO';
+const HDR = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+
+// ===== SUPABASE HELPERS =====
+async function dbGet(key) {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/app_settings?key=eq.${key}&select=value`,{headers:HDR});
+    const d = await r.json();
+    return d&&d[0]?d[0].value:null;
+  } catch{return null;}
+}
+async function dbSet(key,value) {
+  await fetch(`${SB_URL}/rest/v1/app_settings`,{method:'POST',headers:{...HDR,'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({key,value})});
+}
+async function dbGetAds() {
+  try{const r=await fetch(`${SB_URL}/rest/v1/ads?select=*&order=created_at.asc`,{headers:HDR});return await r.json();}catch{return[];}
+}
+async function dbAddAd(title,content) {
+  await fetch(`${SB_URL}/rest/v1/ads`,{method:'POST',headers:{...HDR,'Prefer':'return=representation'},body:JSON.stringify({title,content})});
+}
+async function dbDelAd(id) {
+  await fetch(`${SB_URL}/rest/v1/ads?id=eq.${id}`,{method:'DELETE',headers:HDR});
+}
+async function dbGetContent(date) {
+  try{const r=await fetch(`${SB_URL}/rest/v1/daily_content?date=eq.${date}&select=content`,{headers:HDR});const d=await r.json();return d&&d[0]?d[0].content:null;}catch{return null;}
+}
+async function dbSaveContent(date,content) {
+  await fetch(`${SB_URL}/rest/v1/daily_content`,{method:'POST',headers:{...HDR,'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({date,content})});
+}
+async function dbDelContent(date) {
+  await fetch(`${SB_URL}/rest/v1/daily_content?date=eq.${date}`,{method:'DELETE',headers:HDR});
+}
+
+// ===== LOGIN =====
+const AU='admin', AP='lark2024';
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!document.getElementById('loginScreen').classList.contains('hidden'))doLogin();});
+function doLogin(){
+  const u=document.getElementById('lu').value, p=document.getElementById('lp').value;
+  if(u===AU&&p===AP){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('aw').classList.add('on');initAdmin();}
+  else{const e=document.getElementById('lerr');e.style.display='block';setTimeout(()=>e.style.display='none',3000);}
+}
+function doLogout(){document.getElementById('loginScreen').classList.remove('hidden');document.getElementById('aw').classList.remove('on');}
+
+// ===== FONT =====
+const FV=['13px','15px','17px','19px'],FL=['Small','Medium','Large','X-Large'];
+let fi=1;
+function afc(d){fi=Math.max(0,Math.min(3,fi+d));document.documentElement.style.setProperty('--af',FV[fi]);document.getElementById('afl').textContent=FL[fi];}
+
+// ===== SECTIONS =====
+function ss(id){
+  document.querySelectorAll('.asec').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.sbl').forEach(b=>b.classList.remove('on'));
+  const s=document.getElementById('s-'+id);if(s)s.classList.add('on');
+  document.querySelectorAll('.sbl').forEach(b=>{if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+id+"'"))b.classList.add('on');});
+}
+
+// ===== ALERT =====
+function alrt(id,msg,type='ok'){const e=document.getElementById(id);if(!e)return;e.textContent=msg;e.className='alrt '+type;setTimeout(()=>e.className='alrt',3000);}
+
+// ===== DASHBOARD =====
+async function loadDash(){
+  const today=new Date().toISOString().split('T')[0];
+  const [ads,content,apiKey]=await Promise.all([dbGetAds(),dbGetContent(today),dbGet('api_key')]);
+  document.getElementById('dstats').innerHTML=`
+    <div class="scard"><div class="sv">${ads.length}</div><div class="sl">Active Ads</div></div>
+    <div class="scard"><div class="sv">${content?'✅':'❌'}</div><div class="sl">Content Today</div></div>
+    <div class="scard"><div class="sv">${apiKey?'✅':'❌'}</div><div class="sl">API Key</div></div>`;
+  document.getElementById('cstat').innerHTML=`
+    <span class="cbadge ${content?'ok':'pend'}">${content?'✅ Content Ready':'⏳ No Content Today'}</span>
+    <span class="cbadge ${apiKey?'ok':'pend'}">${apiKey?'🤖 AI Active':'⚠️ No API Key'}</span>`;
+}
+
+async function forceRegen(){
+  const today=new Date().toISOString().split('T')[0];
+  await dbDelContent(today);
+  alert('✅ Content cleared. Will regenerate when app is opened.');
+  loadDash();
+}
+
+// ===== ADS =====
+async function addAd(){
+  const title=document.getElementById('adTitle').value.trim();
+  const content=document.getElementById('adContent').value.trim();
+  if(!title||!content){alrt('adalrt','Please fill title and content','er');return;}
+  await dbAddAd(title,content);
+  document.getElementById('adTitle').value='';
+  document.getElementById('adContent').value='';
+  alrt('adalrt','✅ Ad added successfully!');
+  renderAds();
+}
+
+async function renderAds(){
+  const ads=await dbGetAds();
+  const list=document.getElementById('adlist');
+  if(!list)return;
+  if(!ads.length){list.innerHTML='<p style="color:rgba(255,255,255,0.3);text-align:center;padding:20px">No ads yet</p>';return;}
+  list.innerHTML=ads.map(ad=>`
+    <div class="adit">
+      <div><div class="adtt">${ad.title}</div><div class="adpv">${ad.content.substring(0,80)}...</div></div>
+      <button class="btn br" onclick="delAd(${ad.id})">🗑</button>
+    </div>`).join('');
+}
+
+async function delAd(id){
+  if(!confirm('Delete this ad?'))return;
+  await dbDelAd(id);
+  renderAds();
+}
+
+// ===== API KEY =====
+async function saveApiKey(){
+  const key=document.getElementById('apiKey').value.trim();
+  if(!key)return;
+  await dbSet('api_key',key);
+  document.getElementById('akstat').textContent='✅ API key saved to cloud! Key: '+key.slice(0,8)+'...';
+  document.getElementById('apiKey').value='';
+}
+
+// ===== AI INSTRUCTIONS =====
+async function saveInstr(){
+  const txt=document.getElementById('aiInstr').value;
+  await dbSet('ai_instructions',txt);
+  alrt('ialrt','✅ Instructions saved to cloud!');
+}
+
+// ===== WHATSAPP =====
+async function saveWA(){
+  const num=document.getElementById('waNum').value.trim();
+  if(!num)return;
+  await dbSet('whatsapp',num);
+  alrt('waalrt','✅ WhatsApp number saved to cloud!');
+}
+
+// ===== ABOUT =====
+async function saveAbout(){
+  const txt=document.getElementById('aboutTxt').value;
+  await dbSet('about_text',txt);
+  alrt('abalrt','✅ About text saved to cloud!');
+}
+
+// ===== DAILY TOPICS =====
+async function saveDailyTopics(){
+  const story=document.getElementById('dStory').value.trim();
+  const grammar=document.getElementById('dGrammar').value.trim();
+  const instr=document.getElementById('dInstr').value.trim();
+  const today=new Date().toISOString().split('T')[0];
+  const combined=`Story topic: ${story||'any'}. Grammar: ${grammar||'any'}. ${instr}`;
+  await Promise.all([dbSet('ai_instructions',combined),dbDelContent(today)]);
+  alrt('dalrt','✅ Saved! Content regenerates when app opens.');
+}
+
+// ===== MANUAL CONTENT =====
+async function saveManual(){
+  const sTitle=document.getElementById('mSTitle').value.trim();
+  const sPrev=document.getElementById('mSPrev').value.trim();
+  const sFull=document.getElementById('mSFull').value.trim();
+  const gRule=document.getElementById('mGRule').value.trim();
+  const gFull=document.getElementById('mGFull').value.trim();
+  if(!sTitle||!sFull||!gRule||!gFull){alrt('malrt','Fill all required fields','er');return;}
+  const today=new Date().toISOString().split('T')[0];
+  const content={
+    story:{title:sTitle,preview:sPrev||sFull.substring(0,120)+'...',full:sFull},
+    grammar:{rule:gRule,preview:gRule,full:gFull},
+    quiz:[]
+  };
+  await dbSaveContent(today,content);
+  alrt('malrt','✅ Manual content published to all users!');
+  loadDash();
+}
+
+// ===== SCHEDULE =====
+function buildSched(){
+  const grid=document.getElementById('sgrid');
+  const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const today=new Date();
+  grid.innerHTML='';
+  for(let i=0;i<7;i++){
+    const d=new Date(today);d.setDate(today.getDate()+i);
+    const key=d.toISOString().split('T')[0];
+    const label=i===0?'Today':i===1?'Tomorrow':days[d.getDay()];
+    grid.innerHTML+=`<div class="sday"><div class="sdname">${label} — ${key}</div>
+      <label class="fl">Story Topic</label><input class="ai" id="ss_${key}" placeholder="Story topic..." style="margin-bottom:8px;"/>
+      <label class="fl">Grammar Topic</label><input class="ai" id="sg_${key}" placeholder="Grammar rule..."/></div>`;
+  }
+}
+
+async function saveSched(){
+  const today=new Date();
+  const sched={};
+  for(let i=0;i<7;i++){
+    const d=new Date(today);d.setDate(today.getDate()+i);
+    const key=d.toISOString().split('T')[0];
+    const s=document.getElementById('ss_'+key)?.value?.trim()||'';
+    const g=document.getElementById('sg_'+key)?.value?.trim()||'';
+    if(s||g)sched[key]={storyTopic:s,grammarTopic:g};
+  }
+  await dbSet('schedule',JSON.stringify(sched));
+  alrt('salrt','✅ Schedule saved to cloud!');
+}
+
+// ===== CLEAR =====
+async function clearContent(){
+  if(!confirm('Clear today\'s content?'))return;
+  const today=new Date().toISOString().split('T')[0];
+  await dbDelContent(today);
+  loadDash();
+}
+
+// ===== AI CHAT =====
+let chatHist=[];
+async function sendChat(){
+  const input=document.getElementById('cinput');
+  const msg=input.value.trim();if(!msg)return;
+  const apiKey=await dbGet('api_key');
+  if(!apiKey){addMsg('a','⚠️ Please add your API key in API & AI Settings first.');return;}
+  addMsg('u',msg);chatHist.push({role:'user',content:msg});input.value='';
+  addMsg('a','⏳ Thinking...');
+  try{
+    const instr=await dbGet('ai_instructions')||'';
+    const r=await fetch('https://api.deepseek.com/v1/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
+      body:JSON.stringify({model:'deepseek-v4-flash',max_tokens:1000,messages:[
+        {role:'system',content:'You are Lark AI admin assistant. Help manage the Lark English learning app.'+(instr?'\n'+instr:'')},
+        ...chatHist
+      ]})
+    });
+    const data=await r.json();
+    // Remove thinking message
+    const msgs=document.getElementById('cmsgs');
+    if(msgs.lastChild) msgs.lastChild.remove();
+    // Check for errors
+    if(!data || !data.choices || !data.choices[0]){
+      const errMsg = data && data.error ? data.error.message : 'No response from AI. Check your API key.';
+      addMsg('a','❌ ' + errMsg);
+      return;
+    }
+    const reply=data.choices[0].message.content;
+    addMsg('a',reply);chatHist.push({role:'assistant',content:reply});
+  }catch(e){
+    const msgs=document.getElementById('cmsgs');
+    if(msgs.lastChild) msgs.lastChild.remove();
+    addMsg('a','❌ Error: '+e.message);
+  }
+}
+function addMsg(role,text){
+  const m=document.getElementById('cmsgs');
+  const d=document.createElement('div');d.className='cmsg '+role;d.textContent=text;
+  m.appendChild(d);m.scrollTop=m.scrollHeight;
+}
+
+// ===== LOAD SAVED VALUES =====
+async function loadSavedValues(){
+  const [apiKey,instr,wa,about]=await Promise.all([
+    dbGet('api_key'),dbGet('ai_instructions'),dbGet('whatsapp'),dbGet('about_text')
+  ]);
+  if(apiKey)document.getElementById('akstat').textContent='Key stored: '+apiKey.slice(0,8)+'...';
+  if(instr)document.getElementById('aiInstr').value=instr;
+  if(wa)document.getElementById('waNum').value=wa;
+  if(about)document.getElementById('aboutTxt').value=about;
+}
+
+// ===== INIT =====
+function initAdmin(){
+  loadDash();
+  buildSched();
+  renderAds();
+  loadSavedValues();
+}
+</script>
+</body>
+</html>
