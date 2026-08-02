@@ -192,6 +192,8 @@
       <section class="asec" id="s-manual">
         <div class="stitle">✏️ Manual Content</div>
         <p style="color:rgba(255,255,255,0.4);font-size:0.85rem;margin-bottom:16px;">Use when AI fails. Publishes immediately to all users.</p>
+
+        <!-- STORY -->
         <div class="ac">
           <label class="fl">Story Title</label><input class="ai" id="mSTitle" placeholder="Story title..."/>
           <br><br><label class="fl">Story Preview (shown on card)</label>
@@ -199,11 +201,21 @@
           <br><br><label class="fl">Full Story</label>
           <textarea class="at" id="mSFull" placeholder="Full story text..." style="min-height:160px;"></textarea>
         </div>
+
+        <!-- GRAMMAR -->
         <div class="ac">
           <label class="fl">Grammar Rule Name</label><input class="ai" id="mGRule" placeholder="e.g. Past Perfect Tense"/>
           <br><br><label class="fl">Grammar Lesson</label>
           <textarea class="at" id="mGFull" placeholder="Full grammar lesson..." style="min-height:160px;"></textarea>
         </div>
+
+        <!-- QUIZ -->
+        <div class="ac">
+          <div class="fl" style="font-size:1rem;color:var(--gold);margin-bottom:16px;">📝 Quiz Questions (10 questions)</div>
+          <div id="quizQsContainer"></div>
+          <button class="btn bk" onclick="addQuizQ()" style="margin-top:10px;width:100%;">+ Add Question</button>
+        </div>
+
         <button class="btn bg" onclick="saveManual()">💾 Publish Manual Content</button>
         <div class="alrt" id="malrt"></div>
       </section>
@@ -435,6 +447,59 @@ async function saveDailyTopics(){
 }
 
 // ===== MANUAL CONTENT =====
+let quizQuestions = [];
+
+function addQuizQ() {
+  const idx = quizQuestions.length;
+  if (idx >= 10) { alert('Maximum 10 questions'); return; }
+  quizQuestions.push({ question:'', options:['','','',''], answer:0 });
+  renderQuizQs();
+}
+
+function removeQuizQ(idx) {
+  quizQuestions.splice(idx, 1);
+  renderQuizQs();
+}
+
+function renderQuizQs() {
+  const container = document.getElementById('quizQsContainer');
+  if (!container) return;
+  if (quizQuestions.length === 0) {
+    container.innerHTML = '<p style="color:rgba(255,255,255,0.3);text-align:center;padding:12px;">No questions yet. Click "+ Add Question" to start.</p>';
+    return;
+  }
+  container.innerHTML = quizQuestions.map((q, i) => `
+    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="color:var(--gold);font-weight:700;font-size:0.9rem;">Question ${i+1}</span>
+        <button class="btn br" onclick="removeQuizQ(${i})" style="padding:4px 10px;font-size:0.8rem;">✕ Remove</button>
+      </div>
+      <label class="fl">Question Text</label>
+      <input class="ai" placeholder="Enter question..." value="${escVal(q.question)}" oninput="quizQuestions[${i}].question=this.value" style="margin-bottom:10px;"/>
+      <label class="fl">Options (select the correct answer)</label>
+      ${['A','B','C','D'].map((letter, j) => `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <input type="radio" name="correct_${i}" ${q.answer===j?'checked':''} onchange="quizQuestions[${i}].answer=${j}" style="accent-color:var(--gold);width:16px;height:16px;cursor:pointer;"/>
+          <span style="color:var(--gold);font-weight:700;min-width:20px;">${letter})</span>
+          <input class="ai" placeholder="Option ${letter}..." value="${escVal(q.options[j])}" oninput="quizQuestions[${i}].options[${j}]=this.value" style="flex:1;"/>
+        </div>`).join('')}
+      <p style="color:rgba(255,255,255,0.3);font-size:0.75rem;margin-top:6px;">🔘 Select the radio button next to the correct answer</p>
+    </div>`).join('');
+}
+
+function escVal(str) {
+  if (!str) return '';
+  return str.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function getQuizData() {
+  return quizQuestions.filter(q => q.question.trim() && q.options.every(o => o.trim())).map(q => ({
+    question: q.question.trim(),
+    options: q.options.map(o => o.trim()),
+    answer: q.answer
+  }));
+}
+
 async function saveManual(){
   const sTitle=document.getElementById('mSTitle').value.trim();
   const sPrev=document.getElementById('mSPrev').value.trim();
@@ -442,11 +507,13 @@ async function saveManual(){
   const gRule=document.getElementById('mGRule').value.trim();
   const gFull=document.getElementById('mGFull').value.trim();
   if(!sTitle||!sFull||!gRule||!gFull){alrt('malrt','Fill all required fields','er');return;}
+  const quiz = getQuizData();
+  if(quiz.length < 10){alrt('malrt',`Add 10 complete questions. Current: ${quiz.length}/10`,'er');return;}
   const today=new Date().toISOString().split('T')[0];
   const content={
     story:{title:sTitle,preview:sPrev||sFull.substring(0,120)+'...',full:sFull},
     grammar:{rule:gRule,preview:gRule,full:gFull},
-    quiz:[]
+    quiz:quiz
   };
   await dbSaveContent(today,content);
   alrt('malrt','✅ Manual content published to all users!');
@@ -550,6 +617,7 @@ function initAdmin(){
   buildSched();
   renderAds();
   loadSavedValues();
+  renderQuizQs();
 }
 </script>
 </body>
