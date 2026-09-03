@@ -105,7 +105,7 @@
   <img src="images/logo.png" alt="Lark"/>
   <h1>LARK</h1><p>Admin Panel</p>
   <div class="login-form">
-    <input class="li" type="text" id="lu" placeholder="Username"/>
+    <input class="li" type="email" id="lu" placeholder="Email"/>
     <input class="li" type="password" id="lp" placeholder="Password"/>
     <div class="lerr" id="lerr">Invalid credentials</div>
     <button class="lb" onclick="doLogin()">Login →</button>
@@ -238,11 +238,7 @@
         <div class="stitle">🔑 API & AI Settings</div>
         <div class="ac">
           <label class="fl">DeepSeek API Key</label>
-          <div class="row">
-            <input class="ai" type="password" id="apiKey" placeholder="sk-..."/>
-            <button class="btn bg" onclick="saveApiKey()">Save</button>
-          </div>
-          <div id="akstat" style="margin-top:10px;font-size:0.8rem;color:rgba(255,255,255,0.4);"></div>
+          <p style="color:rgba(255,255,255,0.5);font-size:0.85rem;line-height:1.6;">🔒 The key is now stored securely as a Supabase Edge Function secret (not in the app). To change it, go to Supabase Dashboard → Edge Functions → Secrets → <code>DEEPSEEK_API_KEY</code>.</p>
         </div>
         <div class="ac">
           <label class="fl">AI System Instructions</label>
@@ -306,37 +302,80 @@ async function dbGet(key) {
     return d&&d[0]?d[0].value:null;
   } catch{return null;}
 }
+function writeHDR(){return {...HDR,'Authorization':'Bearer '+(authSession?authSession.access_token:SB_KEY)};}
+
 async function dbSet(key,value) {
-  await fetch(`${SB_URL}/rest/v1/app_settings`,{method:'POST',headers:{...HDR,'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({key,value})});
+  await fetch(`${SB_URL}/rest/v1/app_settings`,{method:'POST',headers:{...writeHDR(),'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({key,value})});
 }
 async function dbGetAds() {
   try{const r=await fetch(`${SB_URL}/rest/v1/ads?select=*&order=created_at.asc`,{headers:HDR});return await r.json();}catch{return[];}
 }
 async function dbAddAd(title,content) {
-  await fetch(`${SB_URL}/rest/v1/ads`,{method:'POST',headers:{...HDR,'Prefer':'return=representation'},body:JSON.stringify({title,content})});
+  await fetch(`${SB_URL}/rest/v1/ads`,{method:'POST',headers:{...writeHDR(),'Prefer':'return=representation'},body:JSON.stringify({title,content})});
 }
 async function dbDelAd(id) {
-  await fetch(`${SB_URL}/rest/v1/ads?id=eq.${id}`,{method:'DELETE',headers:HDR});
+  await fetch(`${SB_URL}/rest/v1/ads?id=eq.${id}`,{method:'DELETE',headers:writeHDR()});
 }
 async function dbGetContent(date) {
   try{const r=await fetch(`${SB_URL}/rest/v1/daily_content?date=eq.${date}&select=content`,{headers:HDR});const d=await r.json();return d&&d[0]?d[0].content:null;}catch{return null;}
 }
 async function dbSaveContent(date,content) {
-  await fetch(`${SB_URL}/rest/v1/daily_content`,{method:'POST',headers:{...HDR,'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({date,content})});
+  await fetch(`${SB_URL}/rest/v1/daily_content`,{method:'POST',headers:{...writeHDR(),'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({date,content})});
 }
 async function dbDelContent(date) {
-  await fetch(`${SB_URL}/rest/v1/daily_content?date=eq.${date}`,{method:'DELETE',headers:HDR});
+  await fetch(`${SB_URL}/rest/v1/daily_content?date=eq.${date}`,{method:'DELETE',headers:writeHDR()});
 }
 
-// ===== LOGIN =====
-const AU='admin', AP='lark2024';
+// ===== LOGIN (Supabase Auth) =====
+let authSession = null;
+
+function saveSession(session){authSession=session;localStorage.setItem('lark_admin_session',JSON.stringify(session));}
+function clearSession(){authSession=null;localStorage.removeItem('lark_admin_session');}
+function loadSavedSession(){const raw=localStorage.getItem('lark_admin_session');if(!raw)return null;try{return JSON.parse(raw);}catch{return null;}}
+
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!document.getElementById('loginScreen').classList.contains('hidden'))doLogin();});
-function doLogin(){
-  const u=document.getElementById('lu').value, p=document.getElementById('lp').value;
-  if(u===AU&&p===AP){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('aw').classList.add('on');initAdmin();}
-  else{const e=document.getElementById('lerr');e.style.display='block';setTimeout(()=>e.style.display='none',3000);}
+
+async function doLogin(){
+  const email=document.getElementById('lu').value.trim(), password=document.getElementById('lp').value;
+  const btn=document.querySelector('.lb'); btn.disabled=true; btn.textContent='...';
+  try{
+    const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=password`,{
+      method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},
+      body:JSON.stringify({email,password})
+    });
+    const d=await r.json();
+    if(!r.ok||!d.access_token){const e=document.getElementById('lerr');e.style.display='block';setTimeout(()=>e.style.display='none',3000);return;}
+    saveSession({access_token:d.access_token,refresh_token:d.refresh_token,expires_at:Date.now()+(d.expires_in*1000)});
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('aw').classList.add('on');
+    initAdmin();
+  } finally { btn.disabled=false; btn.textContent='Login →'; }
 }
-function doLogout(){document.getElementById('loginScreen').classList.remove('hidden');document.getElementById('aw').classList.remove('on');}
+
+async function tryRestoreSession(){
+  const s=loadSavedSession(); if(!s) return false;
+  if(Date.now()<s.expires_at-30000){authSession=s;return true;}
+  try{
+    const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=refresh_token`,{
+      method:'POST',headers:{'Content-Type':'application/json','apikey':SB_KEY},
+      body:JSON.stringify({refresh_token:s.refresh_token})
+    });
+    const d=await r.json();
+    if(!r.ok||!d.access_token){clearSession();return false;}
+    saveSession({access_token:d.access_token,refresh_token:d.refresh_token,expires_at:Date.now()+(d.expires_in*1000)});
+    return true;
+  }catch{clearSession();return false;}
+}
+
+function doLogout(){clearSession();document.getElementById('loginScreen').classList.remove('hidden');document.getElementById('aw').classList.remove('on');}
+
+(async function initAuthCheck(){
+  if(await tryRestoreSession()){
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('aw').classList.add('on');
+    initAdmin();
+  }
+})();
 
 // ===== FONT =====
 const FV=['13px','15px','17px','19px'],FL=['Small','Medium','Large','X-Large'];
@@ -357,14 +396,12 @@ function alrt(id,msg,type='ok'){const e=document.getElementById(id);if(!e)return
 // ===== DASHBOARD =====
 async function loadDash(){
   const today=new Date().toISOString().split('T')[0];
-  const [ads,content,apiKey]=await Promise.all([dbGetAds(),dbGetContent(today),dbGet('api_key')]);
+  const [ads,content]=await Promise.all([dbGetAds(),dbGetContent(today)]);
   document.getElementById('dstats').innerHTML=`
     <div class="scard"><div class="sv">${ads.length}</div><div class="sl">Active Ads</div></div>
-    <div class="scard"><div class="sv">${content?'✅':'❌'}</div><div class="sl">Content Today</div></div>
-    <div class="scard"><div class="sv">${apiKey?'✅':'❌'}</div><div class="sl">API Key</div></div>`;
+    <div class="scard"><div class="sv">${content?'✅':'❌'}</div><div class="sl">Content Today</div></div>`;
   document.getElementById('cstat').innerHTML=`
-    <span class="cbadge ${content?'ok':'pend'}">${content?'✅ Content Ready':'⏳ No Content Today'}</span>
-    <span class="cbadge ${apiKey?'ok':'pend'}">${apiKey?'🤖 AI Active':'⚠️ No API Key'}</span>`;
+    <span class="cbadge ${content?'ok':'pend'}">${content?'✅ Content Ready':'⏳ No Content Today'}</span>`;
 }
 
 async function forceRegen(){
@@ -402,15 +439,6 @@ async function delAd(id){
   if(!confirm('Delete this ad?'))return;
   await dbDelAd(id);
   renderAds();
-}
-
-// ===== API KEY =====
-async function saveApiKey(){
-  const key=document.getElementById('apiKey').value.trim();
-  if(!key)return;
-  await dbSet('api_key',key);
-  document.getElementById('akstat').textContent='✅ API key saved to cloud! Key: '+key.slice(0,8)+'...';
-  document.getElementById('apiKey').value='';
 }
 
 // ===== AI INSTRUCTIONS =====
@@ -563,14 +591,12 @@ let chatHist=[];
 async function sendChat(){
   const input=document.getElementById('cinput');
   const msg=input.value.trim();if(!msg)return;
-  const apiKey=await dbGet('api_key');
-  if(!apiKey){addMsg('a','⚠️ Please add your API key in API & AI Settings first.');return;}
   addMsg('u',msg);chatHist.push({role:'user',content:msg});input.value='';
   addMsg('a','⏳ Thinking...');
   try{
     const instr=await dbGet('ai_instructions')||'';
-    const r=await fetch('https://api.deepseek.com/v1/chat/completions',{
-      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
+    const r=await fetch(`${SB_URL}/functions/v1/ai-proxy`,{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},
       body:JSON.stringify({model:'deepseek-v4-flash',max_tokens:1000,messages:[
         {role:'system',content:'You are Lark AI admin assistant. Help manage the Lark English learning app.'+(instr?'\n'+instr:'')},
         ...chatHist
@@ -602,10 +628,9 @@ function addMsg(role,text){
 
 // ===== LOAD SAVED VALUES =====
 async function loadSavedValues(){
-  const [apiKey,instr,wa,about]=await Promise.all([
-    dbGet('api_key'),dbGet('ai_instructions'),dbGet('whatsapp'),dbGet('about_text')
+  const [instr,wa,about]=await Promise.all([
+    dbGet('ai_instructions'),dbGet('whatsapp'),dbGet('about_text')
   ]);
-  if(apiKey)document.getElementById('akstat').textContent='Key stored: '+apiKey.slice(0,8)+'...';
   if(instr)document.getElementById('aiInstr').value=instr;
   if(wa)document.getElementById('waNum').value=wa;
   if(about)document.getElementById('aboutTxt').value=about;
