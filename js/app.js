@@ -68,16 +68,14 @@ function loadAboutPage() {
 // ===== LOAD SHARED DATA FROM SUPABASE =====
 async function loadSharedData() {
   try {
-    const [whatsapp, aboutText, apiKey, aiInstructions, ads] = await Promise.all([
+    const [whatsapp, aboutText, aiInstructions, ads] = await Promise.all([
       DB.getSetting('whatsapp'),
       DB.getSetting('about_text'),
-      DB.getSetting('api_key'),
       DB.getSetting('ai_instructions'),
       DB.getAds()
     ]);
     AppState.shared.whatsapp       = whatsapp || '';
     AppState.shared.aboutText      = aboutText || '';
-    AppState.shared.apiKey         = apiKey || '';
     AppState.shared.aiInstructions = aiInstructions || '';
     AppState.shared.ads            = ads || [];
   } catch (e) {
