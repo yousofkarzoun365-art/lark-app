@@ -1,4 +1,6 @@
-/* ===== AI.JS - DeepSeek API + Demo fallback ===== */
+/* ===== AI.JS - DeepSeek via Supabase Edge Function proxy + Demo fallback ===== */
+
+const AI_PROXY_URL = `${SUPABASE_URL}/functions/v1/ai-proxy`;
 
 const DEMO_CONTENT = {
   story: {
@@ -83,10 +85,19 @@ Examples:
   ]
 };
 
-async function generateDailyContent() {
-  const apiKey = AppState.shared.apiKey;
-  if (!apiKey) return DEMO_CONTENT;
+async function callAIProxy(payload) {
+  const response = await fetch(AI_PROXY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_KEY },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) throw new Error('AI proxy error');
+  const data = await response.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
 
+async function generateDailyContent() {
   try {
     const instructions = AppState.shared.aiInstructions || '';
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -112,14 +123,7 @@ Generate daily English learning content in this EXACT JSON format with no markdo
 }
 Create exactly 10 quiz questions. Return ONLY valid JSON, no markdown, no extra text.`;
 
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: JSON.stringify({ model: 'deepseek-v4-flash', max_tokens: 3000, messages: [{ role: 'user', content: prompt }] })
-    });
-
-    if (!response.ok) throw new Error('API error');
-    const data = await response.json();
+    const data = await callAIProxy({ model: 'deepseek-v4-flash', max_tokens: 3000, messages: [{ role: 'user', content: prompt }] });
     const text = data.choices[0].message.content.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(text);
     if (parsed.story && parsed.grammar && parsed.quiz) return parsed;
@@ -131,20 +135,11 @@ Create exactly 10 quiz questions. Return ONLY valid JSON, no markdown, no extra 
 }
 
 async function translateWord(word) {
-  const apiKey = AppState.shared.apiKey;
-  if (!apiKey) return { phonetic: '', translation: 'Add API key to enable translation' };
-
   try {
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: 'deepseek-v4-flash', max_tokens: 100,
-        messages: [{ role: 'user', content: `Translate the English word "${word}" to Arabic and give its phonetic transcription. Return ONLY this JSON (no markdown): {"phonetic": "/phonetic/", "translation": "Arabic translation"}` }]
-      })
+    const data = await callAIProxy({
+      model: 'deepseek-v4-flash', max_tokens: 100,
+      messages: [{ role: 'user', content: `Translate the English word "${word}" to Arabic and give its phonetic transcription. Return ONLY this JSON (no markdown): {"phonetic": "/phonetic/", "translation": "Arabic translation"}` }]
     });
-    if (!response.ok) throw new Error('API error');
-    const data = await response.json();
     const text = data.choices[0].message.content.replace(/```json|```/g, '').trim();
     return JSON.parse(text);
   } catch {
@@ -153,22 +148,13 @@ async function translateWord(word) {
 }
 
 async function chatWithAI(messages) {
-  const apiKey = AppState.shared.apiKey;
-  if (!apiKey) throw new Error('No API key');
   const instructions = AppState.shared.aiInstructions || '';
-
-  const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: 'deepseek-v4-flash', max_tokens: 1000,
-      messages: [
-        { role: 'system', content: `You are Lark AI, an English learning assistant.${instructions ? '\n' + instructions : ''}` },
-        ...messages
-      ]
-    })
+  const data = await callAIProxy({
+    model: 'deepseek-v4-flash', max_tokens: 1000,
+    messages: [
+      { role: 'system', content: `You are Lark AI, an English learning assistant.${instructions ? '\n' + instructions : ''}` },
+      ...messages
+    ]
   });
-  if (!response.ok) throw new Error('API error');
-  const data = await response.json();
   return data.choices[0].message.content;
 }
