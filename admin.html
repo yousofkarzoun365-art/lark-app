@@ -211,9 +211,12 @@
 
         <!-- QUIZ -->
         <div class="ac">
-          <div class="fl" style="font-size:1rem;color:var(--gold);margin-bottom:16px;">📝 Quiz Questions (10 questions)</div>
-          <div id="quizQsContainer"></div>
-          <button class="btn bk" onclick="addQuizQ()" style="margin-top:10px;width:100%;">+ Add Question</button>
+          <div class="fl" style="font-size:1rem;color:var(--gold);margin-bottom:16px;">📝 Quiz Questions — paste JSON (exactly 10 questions)</div>
+          <textarea class="at" id="mQuizJson" oninput="updateQuizPreview()" placeholder='[
+  {"question":"...", "options":["A","B","C","D"], "answer":0},
+  ... (10 total)
+]' style="min-height:220px;font-family:monospace;font-size:0.85rem;"></textarea>
+          <div id="mQuizPreview" style="margin-top:10px;font-size:0.85rem;color:rgba(255,255,255,0.4);">Paste JSON above to validate</div>
         </div>
 
         <button class="btn bg" onclick="saveManual()">💾 Publish Manual Content</button>
@@ -475,57 +478,31 @@ async function saveDailyTopics(){
 }
 
 // ===== MANUAL CONTENT =====
-let quizQuestions = [];
-
-function addQuizQ() {
-  const idx = quizQuestions.length;
-  if (idx >= 10) { alert('Maximum 10 questions'); return; }
-  quizQuestions.push({ question:'', options:['','','',''], answer:0 });
-  renderQuizQs();
-}
-
-function removeQuizQ(idx) {
-  quizQuestions.splice(idx, 1);
-  renderQuizQs();
-}
-
-function renderQuizQs() {
-  const container = document.getElementById('quizQsContainer');
-  if (!container) return;
-  if (quizQuestions.length === 0) {
-    container.innerHTML = '<p style="color:rgba(255,255,255,0.3);text-align:center;padding:12px;">No questions yet. Click "+ Add Question" to start.</p>';
-    return;
+function parseQuizJson() {
+  const raw = document.getElementById('mQuizJson').value.trim();
+  if (!raw) return { error: 'Paste the quiz JSON first.' };
+  let data;
+  try { data = JSON.parse(raw); }
+  catch (e) { return { error: 'Invalid JSON: ' + e.message }; }
+  if (!Array.isArray(data)) return { error: 'JSON must be an array of 10 questions.' };
+  if (data.length !== 10) return { error: `Need exactly 10 questions. Found: ${data.length}` };
+  for (let i = 0; i < data.length; i++) {
+    const q = data[i];
+    if (!q || typeof q.question !== 'string' || !q.question.trim())
+      return { error: `Question ${i + 1}: missing "question" text.` };
+    if (!Array.isArray(q.options) || q.options.length !== 4 || q.options.some(o => typeof o !== 'string' || !o.trim()))
+      return { error: `Question ${i + 1}: needs exactly 4 non-empty "options".` };
+    if (typeof q.answer !== 'number' || q.answer < 0 || q.answer > 3)
+      return { error: `Question ${i + 1}: "answer" must be a number from 0 to 3.` };
   }
-  container.innerHTML = quizQuestions.map((q, i) => `
-    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px;margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <span style="color:var(--gold);font-weight:700;font-size:0.9rem;">Question ${i+1}</span>
-        <button class="btn br" onclick="removeQuizQ(${i})" style="padding:4px 10px;font-size:0.8rem;">✕ Remove</button>
-      </div>
-      <label class="fl">Question Text</label>
-      <input class="ai" placeholder="Enter question..." value="${escVal(q.question)}" oninput="quizQuestions[${i}].question=this.value" style="margin-bottom:10px;"/>
-      <label class="fl">Options (select the correct answer)</label>
-      ${['A','B','C','D'].map((letter, j) => `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-          <input type="radio" name="correct_${i}" ${q.answer===j?'checked':''} onchange="quizQuestions[${i}].answer=${j}" style="accent-color:var(--gold);width:16px;height:16px;cursor:pointer;"/>
-          <span style="color:var(--gold);font-weight:700;min-width:20px;">${letter})</span>
-          <input class="ai" placeholder="Option ${letter}..." value="${escVal(q.options[j])}" oninput="quizQuestions[${i}].options[${j}]=this.value" style="flex:1;"/>
-        </div>`).join('')}
-      <p style="color:rgba(255,255,255,0.3);font-size:0.75rem;margin-top:6px;">🔘 Select the radio button next to the correct answer</p>
-    </div>`).join('');
+  return { data };
 }
 
-function escVal(str) {
-  if (!str) return '';
-  return str.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-
-function getQuizData() {
-  return quizQuestions.filter(q => q.question.trim() && q.options.every(o => o.trim())).map(q => ({
-    question: q.question.trim(),
-    options: q.options.map(o => o.trim()),
-    answer: q.answer
-  }));
+function updateQuizPreview() {
+  const el = document.getElementById('mQuizPreview');
+  const { data, error } = parseQuizJson();
+  if (error) { el.textContent = '⚠️ ' + error; el.style.color = '#e88'; }
+  else { el.textContent = `✅ ${data.length}/10 valid questions`; el.style.color = '#8e8'; }
 }
 
 async function saveManual(){
@@ -535,8 +512,8 @@ async function saveManual(){
   const gRule=document.getElementById('mGRule').value.trim();
   const gFull=document.getElementById('mGFull').value.trim();
   if(!sTitle||!sFull||!gRule||!gFull){alrt('malrt','Fill all required fields','er');return;}
-  const quiz = getQuizData();
-  if(quiz.length < 10){alrt('malrt',`Add 10 complete questions. Current: ${quiz.length}/10`,'er');return;}
+  const {data:quiz,error}=parseQuizJson();
+  if(error){alrt('malrt',error,'er');return;}
   const today=new Date().toISOString().split('T')[0];
   const content={
     story:{title:sTitle,preview:sPrev||sFull.substring(0,120)+'...',full:sFull},
@@ -642,7 +619,6 @@ function initAdmin(){
   buildSched();
   renderAds();
   loadSavedValues();
-  renderQuizQs();
 }
 </script>
 </body>
