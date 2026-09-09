@@ -134,6 +134,7 @@
       <button class="sbl" onclick="ss('manual')">✏️ Manual Content</button>
       <div class="sbsec">Ads & Settings</div>
       <button class="sbl" onclick="ss('ads')">📢 Advertisements</button>
+      <button class="sbl" onclick="ss('notif')">🔔 Notifications</button>
       <button class="sbl" onclick="ss('api')">🔑 API & AI</button>
       <button class="sbl" onclick="ss('chat')">💬 AI Chat</button>
       <button class="sbl" onclick="ss('appset')">⚙️ App Settings</button>
@@ -234,6 +235,20 @@
           <div class="alrt" id="adalrt"></div>
         </div>
         <div class="adlist" id="adlist"></div>
+      </section>
+
+      <!-- NOTIFICATIONS -->
+      <section class="asec" id="s-notif">
+        <div class="stitle">🔔 Push Notifications</div>
+        <div class="ac">
+          <p style="color:rgba(255,255,255,0.5);font-size:0.85rem;margin-bottom:14px;" id="subCount">Loading subscriber count...</p>
+          <label class="fl">Notification Title</label>
+          <input class="ai" id="notifTitle" placeholder="e.g. Time to learn! 📚"/>
+          <br><br><label class="fl">Notification Message</label>
+          <textarea class="at" id="notifBody" placeholder="Write a short motivating message..." style="min-height:100px;"></textarea>
+          <br><br><button class="btn bg" onclick="sendNotification()">🚀 Send to All Subscribers</button>
+          <div class="alrt" id="notifalrt"></div>
+        </div>
       </section>
 
       <!-- API -->
@@ -613,12 +628,41 @@ async function loadSavedValues(){
   if(about)document.getElementById('aboutTxt').value=about;
 }
 
+// ===== NOTIFICATIONS =====
+async function loadSubCount(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/push_subscriptions?select=id`,{headers:writeHDR()});
+    const d=await r.json();
+    document.getElementById('subCount').textContent=`👥 ${Array.isArray(d)?d.length:0} subscriber(s) will receive this notification.`;
+  }catch{document.getElementById('subCount').textContent='';}
+}
+
+async function sendNotification(){
+  const title=document.getElementById('notifTitle').value.trim();
+  const body=document.getElementById('notifBody').value.trim();
+  if(!title||!body){alrt('notifalrt','Please fill in both the title and the message','er');return;}
+  try{
+    const r=await fetch(`${SB_URL}/functions/v1/send-notification`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(authSession?authSession.access_token:SB_KEY)},
+      body:JSON.stringify({title,body})
+    });
+    const d=await r.json();
+    if(!r.ok){alrt('notifalrt',d.error||'Failed to send','er');return;}
+    alrt('notifalrt',`✅ Sent to ${d.sent} subscriber(s)`+(d.removed?` (removed ${d.removed} expired)`:''));
+    document.getElementById('notifTitle').value='';
+    document.getElementById('notifBody').value='';
+    loadSubCount();
+  }catch(e){alrt('notifalrt','Network error: '+e.message,'er');}
+}
+
 // ===== INIT =====
 function initAdmin(){
   loadDash();
   buildSched();
   renderAds();
   loadSavedValues();
+  loadSubCount();
 }
 </script>
 </body>
