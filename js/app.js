@@ -221,6 +221,7 @@ async function init() {
   initNavigation();
   initContentModals();
   initSettings();
+  initNotifications();
   initQuiz();
   initVocab();
   initAds();
