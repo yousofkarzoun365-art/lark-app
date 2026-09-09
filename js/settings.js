@@ -14,13 +14,14 @@ function initSettings() {
   document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
 
   document.getElementById('profileBtn').addEventListener('click', () => { closeSidebar(); showModal('profileModal'); });
-  document.getElementById('notificationsBtn').addEventListener('click', () => { closeSidebar(); showToast('🔔 Notifications coming soon!', ''); });
+  document.getElementById('notificationsBtn').addEventListener('click', () => { closeSidebar(); showModal('notificationsModal'); updateNotificationsUI(); });
   document.getElementById('languageBtn').addEventListener('click', () => { closeSidebar(); showModal('languageModal'); });
   document.getElementById('fontSizeBtn').addEventListener('click', () => { closeSidebar(); showModal('fontSizeModal'); });
   document.getElementById('aboutSidebarBtn').addEventListener('click', () => { closeSidebar(); navigateTo('about'); });
 
   document.getElementById('profileModalClose').addEventListener('click', () => closeModal('profileModal'));
   document.getElementById('languageModalClose').addEventListener('click', () => closeModal('languageModal'));
+  document.getElementById('notificationsModalClose').addEventListener('click', () => closeModal('notificationsModal'));
   document.getElementById('fontSizeModalClose').addEventListener('click', () => closeModal('fontSizeModal'));
 
   document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
