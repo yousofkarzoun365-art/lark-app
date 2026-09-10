@@ -81,7 +81,8 @@ async function updateNotificationsUI() {
     statusEl.textContent = 'Not supported on this browser';
     enableBtn.style.display = 'none'; disableBtn.style.display = 'none';
   } else if (status === 'sw_error') {
-    statusEl.textContent = '⚠️ Could not connect to the background service. Try closing and reopening the app.';
+    const detail = window.LARK_SW_ERROR ? (': ' + window.LARK_SW_ERROR) : ' (timed out)';
+    statusEl.textContent = '⚠️ Background service failed' + detail;
     enableBtn.style.display = 'none'; disableBtn.style.display = 'none';
   } else if (status === 'denied') {
     statusEl.textContent = 'Blocked — enable notifications for this site in your browser settings';
