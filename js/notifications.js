@@ -27,6 +27,7 @@ async function getPushStatus() {
 }
 
 async function enableNotifications() {
+  const statusEl = document.getElementById('notifStatus');
   try {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       showToast('Push notifications are not supported on this browser', '');
@@ -46,13 +47,19 @@ async function enableNotifications() {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
       });
     }
-    await DB.subscribePush(sub);
-    showToast('🔔 Notifications enabled!', 'success');
+    const result = await DB.subscribePush(sub);
+    if (result.ok) {
+      showToast('🔔 Notifications enabled!', 'success');
+      await updateNotificationsUI();
+    } else {
+      if (statusEl) statusEl.textContent = '⚠️ Could not save subscription: ' + (result.error || 'unknown error');
+      showToast('⚠️ Could not save your subscription', '');
+    }
   } catch (err) {
     console.error('Subscribe failed:', err);
     showToast('Could not enable notifications', '');
+    await updateNotificationsUI();
   }
-  await updateNotificationsUI();
 }
 
 async function disableNotifications() {
