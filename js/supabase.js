@@ -90,11 +90,15 @@ const DB = {
 
   async subscribePush(subscription) {
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions`, {
         method: 'POST',
         headers: { ...this.headers, 'Prefer': 'resolution=merge-duplicates' },
         body: JSON.stringify({ endpoint: subscription.endpoint, subscription: subscription.toJSON ? subscription.toJSON() : subscription })
       });
+      if (!res.ok) {
+        console.error('subscribePush failed:', res.status, await res.text());
+        return false;
+      }
       return true;
     } catch (e) { console.error('subscribePush error:', e); return false; }
   },
