@@ -1,5 +1,5 @@
 /* ===== SW.JS - Offline support for Lark ===== */
-const CACHE_NAME = 'lark-shell-v2';
+const CACHE_NAME = 'lark-shell-v3';
 const DATA_CACHE_NAME = 'lark-data-v1';
 
 const SHELL_FILES = [
@@ -22,11 +22,18 @@ const SHELL_FILES = [
   './js/app.js'
 ];
 
-// Install: pre-cache the app shell
+// Install: pre-cache the app shell. Each file is cached independently so
+// one missing/404 file doesn't stop the Service Worker from activating.
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(SHELL_FILES))
+      .then((cache) =>
+        Promise.allSettled(
+          SHELL_FILES.map((url) =>
+            cache.add(url).catch((err) => console.warn('SW: could not cache', url, err))
+          )
+        )
+      )
       .then(() => self.skipWaiting())
   );
 });
