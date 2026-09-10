@@ -96,11 +96,15 @@ const DB = {
         body: JSON.stringify({ endpoint: subscription.endpoint, subscription: subscription.toJSON ? subscription.toJSON() : subscription })
       });
       if (!res.ok) {
-        console.error('subscribePush failed:', res.status, await res.text());
-        return false;
+        const errText = await res.text();
+        console.error('subscribePush failed:', res.status, errText);
+        return { ok: false, error: `HTTP ${res.status}: ${errText}` };
       }
-      return true;
-    } catch (e) { console.error('subscribePush error:', e); return false; }
+      return { ok: true };
+    } catch (e) {
+      console.error('subscribePush error:', e);
+      return { ok: false, error: e.message };
+    }
   },
 
   async unsubscribePush(endpoint) {
