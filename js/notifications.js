@@ -14,9 +14,16 @@ function urlBase64ToUint8Array(base64String) {
 async function getPushStatus() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return 'unsupported';
   if (Notification.permission === 'denied') return 'denied';
-  const reg = await navigator.serviceWorker.ready;
-  const sub = await reg.pushManager.getSubscription();
-  return sub ? 'enabled' : 'disabled';
+  try {
+    const reg = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+    ]);
+    const sub = await reg.pushManager.getSubscription();
+    return sub ? 'enabled' : 'disabled';
+  } catch {
+    return 'sw_error';
+  }
 }
 
 async function enableNotifications() {
@@ -72,6 +79,9 @@ async function updateNotificationsUI() {
   const status = await getPushStatus();
   if (status === 'unsupported') {
     statusEl.textContent = 'Not supported on this browser';
+    enableBtn.style.display = 'none'; disableBtn.style.display = 'none';
+  } else if (status === 'sw_error') {
+    statusEl.textContent = '⚠️ Could not connect to the background service. Try closing and reopening the app.';
     enableBtn.style.display = 'none'; disableBtn.style.display = 'none';
   } else if (status === 'denied') {
     statusEl.textContent = 'Blocked — enable notifications for this site in your browser settings';
