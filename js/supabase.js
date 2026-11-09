@@ -86,33 +86,5 @@ const DB = {
         headers: this.headers
       });
     } catch (e) { console.error('deleteDailyContent error:', e); }
-  },
-
-  async subscribePush(subscription) {
-    try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions`, {
-        method: 'POST',
-        headers: { ...this.headers, 'Prefer': 'resolution=merge-duplicates' },
-        body: JSON.stringify({ endpoint: subscription.endpoint, subscription: subscription.toJSON ? subscription.toJSON() : subscription })
-      });
-      if (!res.ok) {
-        const errText = await res.text();
-        console.error('subscribePush failed:', res.status, errText);
-        return { ok: false, error: `HTTP ${res.status}: ${errText}` };
-      }
-      return { ok: true };
-    } catch (e) {
-      console.error('subscribePush error:', e);
-      return { ok: false, error: e.message };
-    }
-  },
-
-  async unsubscribePush(endpoint) {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}`, {
-        method: 'DELETE',
-        headers: this.headers
-      });
-    } catch (e) { console.error('unsubscribePush error:', e); }
   }
 };
