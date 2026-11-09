@@ -1,5 +1,5 @@
 /* ===== SW.JS - Offline support for Lark ===== */
-const CACHE_NAME = 'lark-shell-v3';
+const CACHE_NAME = 'lark-shell-v4';
 const DATA_CACHE_NAME = 'lark-data-v1';
 
 const SHELL_FILES = [
@@ -18,7 +18,6 @@ const SHELL_FILES = [
   './js/vocab.js',
   './js/ads.js',
   './js/settings.js',
-  './js/notifications.js',
   './js/app.js'
 ];
 
@@ -88,33 +87,6 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => cached);
       return cached || fetchPromise;
-    })
-  );
-});
-
-// Show an incoming push notification
-self.addEventListener('push', (event) => {
-  let data = { title: 'Lark', body: 'You have a new update!' };
-  try { if (event.data) data = { ...data, ...event.data.json() }; } catch (e) { /* ignore malformed payload */ }
-
-  event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: './images/logo.png',
-      badge: './images/logo.png'
-    })
-  );
-});
-
-// Focus/open the app when the notification is tapped
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      for (const client of clients) {
-        if ('focus' in client) return client.focus();
-      }
-      if (self.clients.openWindow) return self.clients.openWindow('./index.html');
     })
   );
 });
