@@ -3,7 +3,7 @@
 const T = {
   en: {
     greeting_morning: 'Good Morning,', greeting_afternoon: 'Good Afternoon,', greeting_evening: 'Good Evening,',
-    pts: 'PTS', profile: 'Profile', notifications: 'Notifications', language: 'Language',
+    pts: 'PTS', profile: 'Profile', language: 'Language',
     font_size: 'Font Size', about_us: 'About Us', home: 'Home', vocabulary: 'Vocabulary',
     new_ad: 'New Ad', progress: 'Progress', daily_story: 'Daily Story', read_adventure: 'READ ADVENTURE',
     daily_grammar: 'Daily Grammar', explore_rules: 'EXPLORE RULES', daily_quiz: 'Daily Quiz',
@@ -28,7 +28,7 @@ const T = {
   },
   ar: {
     greeting_morning: 'صباح الخير,', greeting_afternoon: 'مساء النهار,', greeting_evening: 'مساء الخير,',
-    pts: 'نقطة', profile: 'الملف الشخصي', notifications: 'الإشعارات', language: 'اللغة',
+    pts: 'نقطة', profile: 'الملف الشخصي', language: 'اللغة',
     font_size: 'حجم الخط', about_us: 'حول التطبيق', home: 'الرئيسية', vocabulary: 'المفردات',
     new_ad: 'إعلان جديد', progress: 'التقدم', daily_story: 'قصة اليوم', read_adventure: 'اقرأ المغامرة',
     daily_grammar: 'قاعدة اليوم', explore_rules: 'استكشف القواعد', daily_quiz: 'اختبار اليوم',
@@ -78,7 +78,7 @@ function applyTranslations() {
     ['userGreeting', greeting], ['headerUserName', name], ['welcomeGreeting', greeting],
     ['welcomeName', name], ['ptsLabel', t('pts')], ['sidebarUsername', name],
     ['sidebarSubtitle', lang === 'ar' ? 'متعلم اللغة الإنجليزية' : 'English Learner'],
-    ['profileLabel', t('profile')], ['notificationsLabel', t('notifications')],
+    ['profileLabel', t('profile')],
     ['languageLabel', t('language')], ['fontSizeLabel', t('font_size')],
     ['aboutSidebarLabel', t('about_us')], ['navHomeLabel', t('home')],
     ['navVocabLabel', t('vocabulary')], ['navNewAdLabel', t('new_ad')],
